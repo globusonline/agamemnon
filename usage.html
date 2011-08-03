@@ -1,0 +1,209 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Usage &mdash; Agamemnon v0.2.2.3 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.2.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Agamemnon v0.2.2.3 documentation" href="index.html" />
+    <link rel="prev" title="Agamemnon Architecture" href="arch.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="arch.html" title="Agamemnon Architecture"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Agamemnon v0.2.2.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<p>The following is an example of how to use Agamemnon in your own code</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">agamemnon.factory</span> <span class="kn">import</span> <span class="n">load_from_settings</span>
+</pre></div>
+</div>
+<p>First, we can decide which kind of data store we are creating.  In this case we&#8217;re creating an InMemory data store</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c">#config = {&#39;agamemnon.keyspace&#39;:&#39;agamemnontest&#39;, &#39;agamemnon.host_list&#39;:&#39;[&quot;localhost:9160&quot;]&#39;}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;agamemnon.keyspace&#39;</span><span class="p">:</span><span class="s">&#39;memory&#39;</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">graph_db</span> <span class="o">=</span> <span class="n">load_from_settings</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In honor of The Simpsons Movie, we&#8217;ll create a node called spiderpig</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">spiderpig</span> <span class="o">=</span> <span class="n">graph_db</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="s">&#39;test_type&#39;</span><span class="p">,</span> <span class="s">&#39;spiderpig&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;sound&#39;</span><span class="p">:</span><span class="s">&#39;oink&#39;</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>Now we will retrieve the spiderpig from the graph and check that the attributes were correct.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">spiderpig</span> <span class="o">=</span> <span class="n">graph_db</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s">&#39;test_type&#39;</span><span class="p">,</span> <span class="s">&#39;spiderpig&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spiderpig</span><span class="p">[</span><span class="s">&#39;sound&#39;</span><span class="p">]</span>
+<span class="go">&#39;oink&#39;</span>
+</pre></div>
+</div>
+<p>Now we will create a friend for the spiderpig (who also happens to be his alter ego).  Again, let&#8217;s check to
+confirm that the node and it&#8217;s attributes were created correctly.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">harry_plopper</span> <span class="o">=</span> <span class="n">graph_db</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="s">&#39;test_type&#39;</span><span class="p">,</span> <span class="s">&#39;Harry Plopper&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;sound&#39;</span><span class="p">:</span><span class="s">&#39;plop&#39;</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">harry_plopper</span> <span class="o">=</span> <span class="n">graph_db</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s">&#39;test_type&#39;</span><span class="p">,</span><span class="s">&#39;Harry Plopper&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">harry_plopper</span><span class="p">[</span><span class="s">&#39;sound&#39;</span><span class="p">]</span>
+<span class="go">&#39;plop&#39;</span>
+</pre></div>
+</div>
+<p>Nodes can have different types as well.  Here we create a node of type simpson, with name Homer.  This node has
+different attributes than the previous nodes.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">homer</span> <span class="o">=</span> <span class="n">graph_db</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="s">&#39;simpson&#39;</span><span class="p">,</span> <span class="s">&#39;Homer&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;sound&#39;</span><span class="p">:</span><span class="s">&#39;Doh&#39;</span><span class="p">,</span> <span class="s">&#39;job&#39;</span><span class="p">:</span><span class="s">&#39;Safety Technician&#39;</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">homer</span> <span class="o">=</span> <span class="n">graph_db</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s">&#39;simpson&#39;</span><span class="p">,</span> <span class="s">&#39;Homer&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">homer</span><span class="p">[</span><span class="s">&#39;sound&#39;</span><span class="p">]</span>
+<span class="go">&#39;Doh&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">homer</span><span class="p">[</span><span class="s">&#39;job&#39;</span><span class="p">]</span>
+<span class="go">&#39;Safety Technician&#39;</span>
+</pre></div>
+</div>
+<p>Nodes by themselves are not very useful.  Let&#8217;s create a relationship between spiderpig and Harry Plopper.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">rel</span> <span class="o">=</span> <span class="n">spiderpig</span><span class="o">.</span><span class="n">friend</span><span class="p">(</span><span class="n">harry_plopper</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s">&#39;spiderpig_harry_plopper_alliance&#39;</span><span class="p">,</span> <span class="n">alter_ego</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">best</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This creates a relationship of type friend.  The key has been specified in this case, although it is not necessary.
+If no key is supplied a uuid will be generated for the relationship.</p>
+<p>Every node type has a &#8220;reference node&#8221;.  This is a metanode for the type and functions as an index for all nodes of a
+given type.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">reference_node</span> <span class="o">=</span> <span class="n">graph_db</span><span class="o">.</span><span class="n">get_reference_node</span><span class="p">(</span><span class="s">&#39;test_type&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Getting the instances from the test_type reference node should return the Harry Plopper node and the spiderpig node.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">sorted</span><span class="p">([</span><span class="n">rel</span><span class="o">.</span><span class="n">target_node</span><span class="o">.</span><span class="n">key</span> <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">reference_node</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">outgoing</span><span class="p">])</span>
+<span class="go">[&#39;Harry Plopper&#39;, &#39;spiderpig&#39;]</span>
+</pre></div>
+</div>
+<p>The spiderpig should only have one friend at this point, and it should be Harry Plopper</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">friends</span> <span class="o">=</span> <span class="p">[</span><span class="n">rel</span> <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">spiderpig</span><span class="o">.</span><span class="n">friend</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">friends</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">friends</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">target_node</span><span class="o">.</span><span class="n">key</span>
+<span class="go">&#39;Harry Plopper&#39;</span>
+</pre></div>
+</div>
+<p>Now let&#8217;s confirm that Harry Plopper is friends with spider pig as well:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="s">&#39;spiderpig&#39;</span> <span class="ow">in</span> <span class="n">harry_plopper</span><span class="o">.</span><span class="n">friend</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>And, once more, make sure that spider pig is Harry Plopper&#8217;s only friend:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">friends</span> <span class="o">=</span> <span class="p">[</span><span class="n">rel</span> <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">harry_plopper</span><span class="o">.</span><span class="n">friend</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">friends</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">friends</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">source_node</span><span class="o">.</span><span class="n">key</span>
+<span class="go">&#39;spiderpig&#39;</span>
+</pre></div>
+</div>
+<p>They should not be best friends.  Let&#8217;s confirm this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">friends</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;best&#39;</span><span class="p">]</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<p>Homer is spiderpig&#8217;s best friend:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">rel</span> <span class="o">=</span> <span class="n">homer</span><span class="o">.</span><span class="n">friend</span><span class="p">(</span><span class="n">spiderpig</span><span class="p">,</span> <span class="n">best</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">alter_ego</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;love&#39;</span><span class="p">,</span> <span class="n">strength</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here we added additional attributes to the relationship.</p>
+<p>Now spiderpig should have 2 friends.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">friends</span> <span class="o">=</span> <span class="p">[</span><span class="n">rel</span> <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">spiderpig</span><span class="o">.</span><span class="n">friend</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">friends</span><span class="p">)</span>
+<span class="go">2</span>
+</pre></div>
+</div>
+<p>You can get a list of all of the relationships of a particular type between a node and other nodes with a particular key</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">homer_spiderpig_love</span> <span class="o">=</span> <span class="n">spiderpig</span><span class="o">.</span><span class="n">friend</span><span class="o">.</span><span class="n">relationships_with</span><span class="p">(</span><span class="s">&#39;Homer&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">homer_spiderpig_love</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">homer_spiderpig_love</span> <span class="o">=</span> <span class="n">spiderpig</span><span class="o">.</span><span class="n">friend</span><span class="o">.</span><span class="n">relationships_with</span><span class="p">(</span><span class="s">&#39;Homer&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">homer_spiderpig_love</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;strength&#39;</span><span class="p">]</span>
+<span class="go">100</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="arch.html"
+                        title="previous chapter">Agamemnon Architecture</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/usage.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="arch.html" title="Agamemnon Architecture"
+             >previous</a> |</li>
+        <li><a href="index.html">Agamemnon v0.2.2.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Tom Howe.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>
