@@ -1,0 +1,67 @@
+from ConfigParser import RawConfigParser
+from optparse import OptionParser
+import sys
+import agamemnon
+from agamemnon.graph_constants import RELATIONSHIP_INDEX, ENDPOINT_NAME_TEMPLATE
+
+run_configs = {'verbose':False}
+def index_relationships_for_node(data_store, node):
+    for rel in node.relationships.outgoing:
+        source_node = rel.source_node
+        target_node = rel.target_node
+        rel_type = rel.type
+        rel_key = rel.key
+        source_key = ENDPOINT_NAME_TEMPLATE % (source_node.type, source_node.key)
+        target_key = ENDPOINT_NAME_TEMPLATE % (target_node.type, target_node.key)
+        data_store.insert(RELATIONSHIP_INDEX, source_key, {target_node.key: {rel_type: '%s__outgoing' % rel_key}})
+        data_store.insert(RELATIONSHIP_INDEX, target_key, {source_node.key: {rel_type: '%s__incoming' % rel_key}})
+        if run_configs['verbose']:
+            print "indexed relationship: %s" % rel_key
+
+
+def index_type(data_store, reference_node):
+    for rel in reference_node.instance.outgoing:
+        index_relationships_for_node(data_store, rel.target_node)
+
+
+def generate_relationship_index(data_store):
+    ref_ref_node = data_store.get_reference_node()
+    for reference_rel in ref_ref_node.instance.outgoing:
+        reference_node = reference_rel.target_node
+        index_type(data_store, reference_node)
+
+
+def main():
+    parser = OptionParser()
+    parser.add_option('-c', '--config', help='The configuration to set up agamemnon')
+    parser.add_option('-v', '--verbose', action='store_true',
+                      help='Should we print the relationship names as they are indexed.',
+                      default=False)
+    parser.parse_args(sys.argv)
+    (options, flags) = parser.parse_args()
+    if options.config is None:
+        print "Usage: generate_indices -c <configuration file> [-v]\n"
+        sys.exit(1)
+    config = RawConfigParser()
+    config.read(options.config)
+    run_configs['verbose'] = options.verbose
+    host_list = ["localhost:9160"]
+    keyspace = "agamemnon"
+    for section in config.sections():
+        for key, value in config.items(section):
+            if key == 'agamemnon.host_list':
+                host_list = value
+            elif key == 'agamemnon.keyspace':
+                keyspace = value
+    ds = agamemnon.load_from_settings({
+        'agamemnon.host_list': host_list,
+        'agamemnon.keyspace': keyspace
+    })
+    response = raw_input("You are going to index the entire data store.  Are you sure you want to do this (Y/n) ? ")
+    if response in ['Y','y','yes','YES', 'Yes']:
+        generate_relationship_index(ds)
+    else:
+        print "Have a nice day!!!"
+
+if __name__ == "__main__":
+    main()

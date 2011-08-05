@@ -12,6 +12,7 @@ tests_requires = requires + ['nose', 'mock']
 setup(name='agamemnon',
       version='0.2.1.4',
       description='A graph database built on top of cassandra',
+	  scripts=['bin/generate_indices'],
       long_description=README + "\n\n" + CHANGES,
       classifiers=[
         "Programming Language :: Python",
