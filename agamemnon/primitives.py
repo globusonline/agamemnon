@@ -11,12 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
+from UserDict import DictMixin
 
 from pycassa.cassandra.ttypes import NotFoundException
 
 __author__ = 'trhowe'
 
 DEFAULT_COLUMN_COUNT = 1000
+
+@contextmanager
+def updating_node(node):
+    yield node
+    node.commit()
+
 
 class Relationship(object):
     """
@@ -32,6 +40,7 @@ class Relationship(object):
         self._type = type
         self.old_values = args
         self.new_values = {}
+        self.new_values.update(self.old_values)
         self.relationship_factories = {}
         self._source_node = source_node
         self._target_node = target_node
@@ -61,7 +70,30 @@ class Relationship(object):
     def attributes(self):
         for key in self.new_values:
             self.old_values[key] = self.new_values[key]
-        return self.old_values
+
+        class RelationshipFilteredDict(DictMixin):
+            def __init__(self, delegate):
+                self._delegate = delegate
+
+            def _is_node_key(self, item):
+                return item.startswith('target__') or item.startswith('source__')
+
+            def _is_rel_key(self, item):
+                return item.startswith('rel_key') or item.startswith('rel_type')
+
+            def __getitem__(self, item):
+                if  self._is_node_key(item) or self._is_rel_key(item):
+                    raise KeyError
+                else:
+                    return self._delegate[item]
+
+            def keys(self):
+                return [
+                    key for key in self._delegate.keys()
+                    if not self._is_node_key(key) and not self._is_rel_key(key)
+                ]
+
+        return RelationshipFilteredDict(self.old_values)
 
     def __getitem__(self, item):
         if item in self.new_values:
@@ -79,27 +111,33 @@ class Relationship(object):
     def __delitem__(self, key):
         if key in self.new_values.keys():
             del(self.new_values[key])
-        if key in self.old_values.keys():
-            del(self.old_values[key])
-
+        
     def delete(self):
         self.data_store.delete_relationship(self._type, self._rel_id, self.source_node.type, self.source_node.key,
                                             self.target_node.type, self.target_node.key)
 
     #TODO: fix this
     def commit(self):
-        for key in self.new_values:
-            self.old_values[key] = self.new_values[key]
-        self.data_store.insert(self.type, self.source_node.key, self.old_values, super_key=self._rel_id)
+        self.data_store.create_relationship(self.type, self.source_node, self.target_node,
+                                            key=self._rel_id, args=self.new_values)
 
+    def clear(self):
+        self.new_values = {}
+        self.new_values.update(self.old_values)
+        self.dirty = False
     def __str__(self):
         return '%s: %s:%s -> %s:%s' % (
-        self._type, self.source_node.type, self.source_node.key, self.target_node.type, self.target_node.key)
+            self._type, self.source_node.type, self.source_node.key, self.target_node.type, self.target_node.key)
 
     def __eq__(self, other):
         if not isinstance(other, Relationship):
             return False
-        return other.rel_key == self.rel_key
+        return other.rel_key == self.rel_key and other.type == other.type
+
+    def __cmp__(self, other):
+        if not isinstance(other, Relationship):
+            return -1
+        return other.rel_key == self.rel_key and other.type == other.type
 
 
 class RelationshipList(object):
@@ -128,9 +166,11 @@ class RelationshipFactory(object):
         self._parent_node = parent_node
 
     #TODO: specify order as from key vs timestamp
-    def __call__(self, node, key=None, **kwargs):
-        return self._data_store.create_relationship(self._rel_type, self._parent_node, node, key, kwargs)
-
+    def __call__(self, node, key=None, attributes=dict(), **kwargs):
+        complete_attributes = {}
+        complete_attributes.update(attributes)
+        complete_attributes.update(kwargs)
+        return self._data_store.create_relationship(self._rel_type, self._parent_node, node, key, complete_attributes)
 
     #TODO: Implement indexing solution here
     def __getitem__(self, item):
@@ -166,7 +206,7 @@ class RelationshipFactory(object):
     @property
     def parent_node(self):
         return self._parent_node
-    
+
     @property
     def outgoing(self):
         try:
@@ -216,7 +256,6 @@ class Node(object):
     @property
     def relationships(self):
         class RelationshipsHolder(object):
-
             def __init__(self, data_store, node):
                 self._data_store = data_store
                 self._node = node
@@ -228,6 +267,16 @@ class Node(object):
             @property
             def incoming(self):
                 return self._data_store.get_all_incoming_relationships(self._node, DEFAULT_COLUMN_COUNT)
+
+            def __len__(self):
+                return len(self.outgoing) + len(self.incoming)
+
+            def __iter__(self):
+                rels = []
+                rels.extend(self.outgoing)
+                rels.extend(self.incoming)
+                for rel in rels:
+                    yield rel
 
         return RelationshipsHolder(self._data_store, self)
 
@@ -278,9 +327,14 @@ class Node(object):
     def __str__(self):
         return 'Node: %s => %s' % (self.type, self.key)
 
+    def __cmp__(self, other):
+        if not isinstance(other, Node):
+            return False
+        return other.type == self.type and other.key == self.key
+
     def __eq__(self, other):
         if not isinstance(other, Node):
             return False
+        return other.type == self.type and other.key == self.key
 
-        return other.key == self.key
 

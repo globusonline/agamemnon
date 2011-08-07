@@ -68,7 +68,7 @@ class InMemoryDataStore(object):
 
 class ColumnFamily(object):
     def __init__(self, name, sort, super=False):
-        self.data = {}
+        self.data = OrderedDict()
         self.sort = sort
         self.name = name
         self.super = super
@@ -97,12 +97,17 @@ class ColumnFamily(object):
                                 and cmp(c, column_finish) < 0)
                                 or cmp(c, column_finish) == 0
                                 or cmp(c, column_start) == 0):
-                                
+
                                 results[c] = data_columns[c]
                         else:
                             results[c] = data_columns[c]
             if not len(results):
                 raise NotFoundException
+            for key, value in results.items():
+                if isinstance(value, dict) and len(value) == 0:
+                    del(results[key])
+                if value is None:
+                    del(results[key])
             return results
         except KeyError:
             raise NotFoundException
@@ -130,7 +135,7 @@ class ColumnFamily(object):
                         value.clear()
                     else:
                         del(row_data[key])
-            elif super_column is None:
+            elif columns is not None and super_column is None:
                 row_data = self.data[row]
                 for c in columns:
                     if c in row_data:
@@ -139,13 +144,12 @@ class ColumnFamily(object):
                             value.clear()
                         else:
                             del(row_data[c])
-            elif columns is None:
-                for key, value in self.data[row].items():
-                    row_data = self.data[row]
-                    if isinstance(value, OrderedDict):
+            elif columns is None and super_column is not None:
+                for key, value in self.data[row][super_column].items():
+                    if isinstance(value, dict):
                         value.clear()
                     else:
-                        del(row_data[key])
+                        del(self.data[row][super_column][key])
             else:
                 sc = self.data[row][super_column]
                 for c in columns:

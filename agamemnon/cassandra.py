@@ -1,4 +1,6 @@
+import json
 from pycassa import system_manager
+import pycassa
 from pycassa.batch import Mutator
 from pycassa.cassandra.ttypes import NotFoundException
 from agamemnon.graph_constants import OUTBOUND_RELATIONSHIP_CF, INBOUND_RELATIONSHIP_CF, RELATIONSHIP_INDEX
@@ -12,6 +14,7 @@ class CassandraDataStore(object):
         self._pool = pool
         self._keyspace = keyspace
         self._batch = None
+        self.in_batch = False
         self.batch_count = 0
         if not self.cf_exists(OUTBOUND_RELATIONSHIP_CF):
             self.create_cf(OUTBOUND_RELATIONSHIP_CF, super=True)
@@ -35,17 +38,15 @@ class CassandraDataStore(object):
         return True
 
     def get_cf(self, type, create=True):
-        if type in self._cf_cache.keys():
-            return self._cf_cache[type]
-        else:
-            column_family = None
-            try:
-                column_family = cf.ColumnFamily(self._pool, type)
-                self._cf_cache[type] = column_family
-            except NotFoundException:
-                if create:
-                    column_family = self.create_cf(type)
-            return column_family
+
+        column_family = None
+        try:
+            column_family = cf.ColumnFamily(self._pool, type)
+            self._cf_cache[type] = column_family
+        except NotFoundException:
+            if create:
+                column_family = self.create_cf(type)
+        return column_family
 
 
 
@@ -57,17 +58,27 @@ class CassandraDataStore(object):
 
     def remove(self,column_family, key, columns=None, super_column=None):
         if self._batch is not None:
-            self._batch.remove(column_family, key, columns, super_column)
+            self._batch.remove(column_family, key, columns=columns, super_column=super_column)
         else:
             column_family.remove(key, columns=columns, super_column=super_column)
 
     def start_batch(self):
-        self.in_batch = True
+        if self._batch is None:
+            self.in_batch = True
+            self._batch = Mutator(self._pool)
         self.batch_count += 1
-        self._batch = Mutator(self._pool)
+
 
     def commit_batch(self):
         self.batch_count -= 1
         if not self.batch_count:
             self._batch.send()
             self._batch = None
+
+def drop_keyspace(host_list, keyspace):
+    system_manager = pycassa.SystemManager(json.loads(host_list)[0])
+    system_manager.drop_keyspace(keyspace)
+
+def create_keyspace(host_list, keyspace, replication_factor=1):
+    system_manager = pycassa.SystemManager(json.loads(host_list)[0])
+    system_manager.create_keyspace(keyspace, replication_factor=replication_factor)
