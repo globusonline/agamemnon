@@ -60,24 +60,70 @@ class DataStore(object):
         else:
             column_family.insert(key, {super_key: serialized})
 
+    def get_outgoing_relationship_count(self, source_node, relationship_type):
+        column_start = '%s__' % relationship_type
+        source_key = RELATIONSHIP_KEY_PATTERN % (source_node.type, source_node.key)
+        try:
+            self.delegate.get_count(OUTBOUND_RELATIONSHIP_CF, source_key, column_start=column_start,
+                                     column_finish='%s_`' % relationship_type)
+        except NotFoundException:
+            return 0
+
+    def get_incoming_relationship_count(self, target_node, relationship_type):
+        column_start = '%s__' % relationship_type
+        target_key = RELATIONSHIP_KEY_PATTERN % (target_node.type, target_node.key)
+        try:
+            self.delegate.get_count(INBOUND_RELATIONSHIP_CF, target_key, column_start=column_start,
+                                     column_finish='%s_`' % relationship_type)
+        except NotFoundException:
+            return 0
+    
+    def get_all_outgoing_relationship_count(self,source_node):
+        source_key = RELATIONSHIP_KEY_PATTERN % (source_node.type, source_node.key)
+        return self.delegate.get_count(OUTBOUND_RELATIONSHIP_CF, source_key)
+
+    def get_all_incoming_relationship_count(self, target_node):
+        target_key = RELATIONSHIP_KEY_PATTERN % (target_node.type, target_node.key)
+        return self.delegate.get_count(INBOUND_RELATIONSHIP_CF, target_key)
+
     def get_all_outgoing_relationships(self, source_node, count=100):
         source_key = RELATIONSHIP_KEY_PATTERN % (source_node.type, source_node.key)
         try:
-            super_columns = self.get(OUTBOUND_RELATIONSHIP_CF, source_key, column_count=count)
+            column_start = None
+            while True:
+                args = {'column_count': 101}
+                if column_start is not None:
+                    args['column_start'] = column_start
+                super_columns = self.get(OUTBOUND_RELATIONSHIP_CF, source_key, **args)
+                if len(super_columns) == 101:
+                    column_start = super_columns.items()[-1][0]
+                    del(super_columns[column_start])
+                for super_column in super_columns.items():
+                    yield self.get_outgoing_relationship(super_column[1]['rel_type'], source_node, super_column)
+                if len(super_columns) < 101:
+                    return
         except NotFoundException:
-            super_columns = {}
-        return [self.get_outgoing_relationship(super_column[1]['rel_type'], source_node, super_column) for super_column in
-                super_columns.items() if len(super_column[1]) > 0]
+            return
 
     def get_all_incoming_relationships(self, target_node, count=100):
-        source_key = RELATIONSHIP_KEY_PATTERN % (target_node.type, target_node.key)
+        target_key = RELATIONSHIP_KEY_PATTERN % (target_node.type, target_node.key)
         try:
-            super_columns = self.get(INBOUND_RELATIONSHIP_CF, source_key, column_count=count)
+            column_start = None
+            while True:
+                args = {'column_count': 101}
+                if column_start is not None:
+                    args['column_start'] = column_start
+                super_columns = self.get(INBOUND_RELATIONSHIP_CF, target_key, **args)
+                if len(super_columns) == 101:
+                    column_start = super_columns.items()[-1][0]
+                    del(super_columns[column_start])
+                for super_column in super_columns.items():
+                    yield self.get_incoming_relationship(super_column[1]['rel_type'], target_node, super_column)
+                if len(super_columns) < 101:
+                    return
         except NotFoundException:
-            super_columns = {}
-        return [self.get_incoming_relationship(super_column[1]['rel_type'], target_node, super_column) for super_column in
-                super_columns.items() if len(super_column[1]) > 0]
-
+            return
+        
     def get_outgoing_relationships(self, source_node, rel_type, count=100):
         source_key = RELATIONSHIP_KEY_PATTERN % (source_node.type, source_node.key)
         #Ok, this is weird.  So in order to get a column slice, you need to provide a start that is <= your first column
