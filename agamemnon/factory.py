@@ -87,15 +87,19 @@ class DataStore(object):
         #probably need a different delimiter.
         #TODO: fix delimiter
         try:
-            num_columns = self.delegate.get_count(OUTBOUND_RELATIONSHIP_CF, source_key, column_start='%s__' % rel_type,
-                                     column_finish='%s_`' % rel_type,)
-            super_columns = self.get(OUTBOUND_RELATIONSHIP_CF, source_key, column_start='%s__' % rel_type,
-                                     column_finish='%s_`' % rel_type,
-                                     column_count=num_columns)
+            column_start = '%s__' % rel_type
+            while True:
+                super_columns = self.get(OUTBOUND_RELATIONSHIP_CF, source_key, column_start=column_start,
+                                     column_finish='%s_`' % rel_type, column_count=101)
+                if len(super_columns) == 101:
+                    column_start = super_columns.items()[-1][0]
+                    del(super_columns[column_start])
+                for super_column in super_columns.items():
+                    yield self.get_outgoing_relationship(rel_type, source_node, super_column)
+                if len(super_columns) < 101:
+                    return
         except NotFoundException:
-            super_columns = {}
-        return [self.get_outgoing_relationship(rel_type, source_node, super_column) for super_column in
-                super_columns.items()]
+            return
 
 
     def get_incoming_relationships(self, target_node, rel_type, count=100):
@@ -107,16 +111,20 @@ class DataStore(object):
         #probably need a different delimiter.
         #TODO: fix delimiter
         try:
-            num_columns = self.delegate.get_count(INBOUND_RELATIONSHIP_CF, target_key, column_start='%s__' % rel_type,
-                                     column_finish='%s_`' % rel_type,)
-
-            super_columns = self.get(INBOUND_RELATIONSHIP_CF, target_key, column_start='%s__' % rel_type,
-                                     column_finish='%s_`' % rel_type,
-                                     column_count=num_columns)
+            column_start = '%s__' % rel_type
+            while True:
+                super_columns = self.get(INBOUND_RELATIONSHIP_CF, target_key, column_start=column_start,
+                                     column_finish='%s_`' % rel_type, column_count=101)
+                if len(super_columns) == 101:
+                    column_start = super_columns.items()[-1][0]
+                    del(super_columns[column_start])
+                for super_column in super_columns.items():
+                    yield self.get_incoming_relationship(rel_type, target_node, super_column)
+                if len(super_columns) < 101:
+                    return
         except NotFoundException:
-            super_columns = {}
-        return [self.get_incoming_relationship(rel_type, target_node, super_column) for super_column in
-                super_columns.items()]
+            return
+
 
     def get_outgoing_relationship(self, rel_type, source_node, super_column):
         """
