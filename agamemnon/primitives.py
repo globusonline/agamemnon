@@ -147,7 +147,10 @@ class RelationshipList(object):
 
     @property
     def single(self):
-        return self._relationship_iter.__next__()
+      rels = [ rel for rel in self._relationship_iter]
+      if rels is None or len(rels) == 0:
+        return None
+      return rels[0]
 
     def __len__(self):
         return self.count
