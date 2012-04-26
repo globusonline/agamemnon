@@ -532,9 +532,16 @@ def load_from_settings(settings, prefix='agamemnon.'):
     if settings["%skeyspace" % prefix] == 'memory':
         delegate = InMemoryDataStore()
     else:
+        kwargs = {
+                "keyspace": settings["%skeyspace" % prefix],
+                "server_list": json.loads(settings["%shost_list" % prefix])
+                    }
+        if "username" in settings and "password" in settings:
+            kwargs['credentials'] = { "username": settings['username'],
+                    "password": settings['password']}
         delegate = CassandraDataStore(
             settings['%skeyspace' % prefix],
-            pycassa.pool.ConnectionPool(settings["%skeyspace" % prefix], json.loads(settings["%shost_list" % prefix])),
+            pycassa.pool.ConnectionPool(**kwargs),
             system_manager=pycassa.system_manager.SystemManager(json.loads(settings["%shost_list" % prefix])[0])
         )
     delegate.load_plugins(plugin_dict)
