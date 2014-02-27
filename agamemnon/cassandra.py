@@ -55,7 +55,7 @@ class CassandraDataStore(Delegate):
                 return pycassa.system_manager.SystemManager(server)
             except TTransportException as e:
                 log.warning("Could not connect to Cassandra server {0}".format(server))
-        raise CassandraClusterNotFoundException("Could not connect to any Cassandra server in list"):
+        raise CassandraClusterNotFoundException("Could not connect to any Cassandra server in list")
 
     @property
     def keyspace(self):
