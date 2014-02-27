@@ -5,3 +5,5 @@ class NoTransactionError(Exception):
 class NodeNotFoundException(Exception):
     pass
 
+class CassandraClusterNotFoundException(Exception):
+    pass

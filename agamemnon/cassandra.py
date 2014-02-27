@@ -1,10 +1,14 @@
 import json
 import pycassa
+import logging
 from pycassa.batch import Mutator
 from pycassa.cassandra.ttypes import NotFoundException, InvalidRequestException
 from agamemnon.graph_constants import OUTBOUND_RELATIONSHIP_CF, INBOUND_RELATIONSHIP_CF, RELATIONSHIP_INDEX, RELATIONSHIP_CF
 import pycassa.columnfamily as cf
 from agamemnon.delegate import Delegate
+from agamemnon.exceptions import CassandraClusterNotFoundException
+
+log = logging.getLogger(__name__)
 
 class CassandraDataStore(Delegate):
     def __init__(self, 
@@ -20,7 +24,6 @@ class CassandraDataStore(Delegate):
         self._replication_factor=replication_factor
         self._pool_args = kwargs
 
-        self._system_manager = pycassa.system_manager.SystemManager(server_list[0])
         if create_keyspace:
             self.create()
         else:
@@ -47,21 +50,26 @@ class CassandraDataStore(Delegate):
 
     @property
     def system_manager(self):
-        return self._system_manager
+        for server in self._server_list:
+            try:
+                return pycassa.system_manager.SystemManager(server)
+            except TTransportException as e:
+                log.warning("Could not connect to Cassandra server {0}".format(server))
+        raise CassandraClusterNotFoundException("Could not connect to any Cassandra server in list"):
 
     @property
     def keyspace(self):
         return self._keyspace
 
     def create(self):
-        if self._keyspace not in self._system_manager.list_keyspaces():
+        if self._keyspace not in self.system_manager.list_keyspaces():
             strategy_options = { 'replication_factor': str(self._replication_factor) } 
-            self._system_manager.create_keyspace(self._keyspace, 
+            self.system_manager.create_keyspace(self._keyspace, 
                                                 strategy_options = strategy_options )
         self.init_pool()
 
     def drop(self):
-        self._system_manager.drop_keyspace(self._keyspace)
+        self.system_manager.drop_keyspace(self._keyspace)
         self._pool.dispose()
         self._pool = None
 
@@ -86,13 +94,13 @@ class CassandraDataStore(Delegate):
         return self.get_cf(type).get_count(row, **args)
 
     def create_cf(self, type, column_type=pycassa.system_manager.ASCII_TYPE, super=False, index_columns=list()):
-        self._system_manager.create_column_family(self._keyspace, type, super=super, comparator_type=column_type)
+        self.system_manager.create_column_family(self._keyspace, type, super=super, comparator_type=column_type)
         for column in index_columns:
             self.create_secondary_index(type, column, column_type)
         return cf.ColumnFamily(self._pool, type, autopack_names=False, autopack_values=False)
 
     def create_secondary_index(self, type, column, column_type=pycassa.system_manager.ASCII_TYPE):
-        self._system_manager.create_index(self._keyspace, type, column, column_type,
+        self.system_manager.create_index(self._keyspace, type, column, column_type,
                                           index_name='%s_%s_index' % (type, column))
     
     def cf_exists(self, type):
@@ -144,10 +152,6 @@ class CassandraDataStore(Delegate):
         if not self.batch_count:
             self._batch.send()
             self._batch = None
-
-def drop_keyspace(host_list, keyspace):
-    system_manager = pycassa.SystemManager(json.loads(host_list)[0])
-    system_manager.drop_keyspace(keyspace)
 
 def create_keyspace(host_list, keyspace, **create_options):
     system_manager = pycassa.SystemManager(json.loads(host_list)[0])
