@@ -1,17 +1,24 @@
+import logging
+
+log = logging.getLogger(__name__)
 
 class Delegate(object):
     def __init__(self):
         self.plugins = []
 
     def load_plugins(self,plugin_dict):
-        #TODO: this is busted
         for key,config in plugin_dict.items():
-            module_name, cls_name = config['classname'].rsplit('.',1)
-            module = __import__(module_name, fromlist=[cls_name])
-            cls = getattr(module, cls_name)
-            plugin = cls(**config['plugin_config'])
-            self.__dict__[key]=plugin
-            self.plugins.append(key)
+            try:
+                module_name, cls_name = config['classname'].rsplit('.',1)
+                module = __import__(module_name, fromlist=[cls_name])
+                cls = getattr(module, cls_name)
+                plugin = cls(**config['plugin_config'])
+                self.__dict__[key]=plugin
+                self.plugins.append(key)
+            except Exception as e:
+                # Catch all exceptions because we can't know what the plugins will throw.
+                message = "Can't load plugin {0}. Stack trace:\n{1}".format(key, str(e))
+                log.error(message)
 
     def on_create(self,node):
         for plugin in self.plugins:
