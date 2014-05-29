@@ -116,7 +116,9 @@ class CassandraDataStore(Delegate):
         if type in self._cf_cache:
             return True
         try:
-            cf.ColumnFamily(self._pool, type, autopack_names=False, autopack_values=False)
+            cf.ColumnFamily(self._pool, type, autopack_names=False, autopack_values=False,
+                            read_consistency_level=self._consistency_level,
+                            write_consistency_level=self._consistency_level)
         except NotFoundException:
             return False
         return True
@@ -127,13 +129,14 @@ class CassandraDataStore(Delegate):
         if type in self._cf_cache:
             return self._cf_cache[type]
         try:
-            column_family = cf.ColumnFamily(self._pool, type, autopack_names=False, autopack_values=False)
+            column_family = cf.ColumnFamily(self._pool, type, autopack_names=False, autopack_values=False,
+                                            read_consistency_level=self._consistency_level,
+                                            write_consistency_level=self._consistency_level)
             self._cf_cache[type] = column_family
         except NotFoundException:
             if create:
                 column_family = self.create_cf(type)
         return column_family
-
 
 
     def insert(self, column_family, key, columns):
