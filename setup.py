@@ -18,7 +18,7 @@ requires = ['pycassa==1.4.0',
 tests_requires = requires + ['nose', 'mock']
 
 setup(name='agamemnon',
-      version='0.4.0',
+      version='0.5.0',
       description='A graph database built on top of cassandra',
       long_description=README + "\n\n" + CHANGES,
       classifiers=[
