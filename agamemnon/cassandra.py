@@ -1,10 +1,13 @@
 import json
-import pycassa
 import logging
+
+import pycassa
 from pycassa.batch import Mutator
-from pycassa.cassandra.ttypes import NotFoundException, InvalidRequestException
-from agamemnon.graph_constants import OUTBOUND_RELATIONSHIP_CF, INBOUND_RELATIONSHIP_CF, RELATIONSHIP_INDEX, RELATIONSHIP_CF
 import pycassa.columnfamily as cf
+from pycassa.cassandra.ttypes import NotFoundException, InvalidRequestException, ConsistencyLevel
+from thrift.transport.TTransport import TTransportException
+
+from agamemnon.graph_constants import OUTBOUND_RELATIONSHIP_CF, INBOUND_RELATIONSHIP_CF, RELATIONSHIP_INDEX, RELATIONSHIP_CF
 from agamemnon.delegate import Delegate
 from agamemnon.exceptions import CassandraClusterNotFoundException
 
@@ -15,13 +18,17 @@ class CassandraDataStore(Delegate):
                  keyspace='agamemnon', 
                  server_list=['localhost:9160'], 
                  replication_factor=1,
+                 default_consistency_level=ConsistencyLevel.QUORUM,
                  create_keyspace = False,
                 **kwargs):
+
+
         super(CassandraDataStore,self).__init__()
 
-        self._keyspace=keyspace
-        self._server_list=server_list
-        self._replication_factor=replication_factor
+        self._keyspace = keyspace
+        self._server_list = server_list
+        self._replication_factor = replication_factor
+        self._consistency_level = default_consistency_level
         self._pool_args = kwargs
 
         if create_keyspace:
@@ -97,7 +104,9 @@ class CassandraDataStore(Delegate):
         self.system_manager.create_column_family(self._keyspace, type, super=super, comparator_type=column_type)
         for column in index_columns:
             self.create_secondary_index(type, column, column_type)
-        return cf.ColumnFamily(self._pool, type, autopack_names=False, autopack_values=False)
+        return cf.ColumnFamily(self._pool, type, autopack_names=False, autopack_values=False,
+                               read_consistency_level=self._consistency_level,
+                               write_consistency_level=self._consistency_level)
 
     def create_secondary_index(self, type, column, column_type=pycassa.system_manager.ASCII_TYPE):
         self.system_manager.create_index(self._keyspace, type, column, column_type,
