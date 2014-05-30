@@ -1,3 +1,7 @@
+0.5.0
+
+* Adds the ability to set default_consistency_level for operations in Cassandra clusters.
+
 0.3.1.0
 ==============
 
