@@ -6,7 +6,7 @@ from operator import itemgetter
 import logging
 
 # pyes exceptions don't all inherit from a common base class.
-ELASTIC_SEARCH_EXCEPTIONS = [exceptions.__dict__[ex] for ex in exceptions.__all__]
+ELASTIC_SEARCH_EXCEPTIONS = tuple(exceptions.__dict__[ex] for ex in exceptions.__all__)
 
 log = logging.getLogger(__name__)
 
