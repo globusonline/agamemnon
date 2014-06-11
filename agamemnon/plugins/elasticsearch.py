@@ -3,6 +3,12 @@ from pyes import exceptions
 from pyes import query
 from itertools import groupby
 from operator import itemgetter
+import logging
+
+# pyes exceptions don't all inherit from a common base class.
+ELASTIC_SEARCH_EXCEPTIONS = tuple(exceptions.__dict__[ex] for ex in exceptions.__all__)
+
+log = logging.getLogger(__name__)
 
 
 class FullTextSearch(object):
@@ -91,7 +97,8 @@ class FullTextSearch(object):
             index_dict = self.populate_index_document(node, index_name)
             try:
                 self.conn.delete(index_name, type, key)
-            except exceptions.NotFoundException:
+            except ELASTIC_SEARCH_EXCEPTIONS as err:
+                log.exception(err)
                 pass
             self.conn.index(index_dict, index_name, type, key)
         self.conn.refresh([index_name])
@@ -100,8 +107,12 @@ class FullTextSearch(object):
         type_indices = self.get_indices_of_type(node.type)
         for index_name in type_indices:
             index_dict = self.populate_index_document(node, index_name)
-            self.conn.index(index_dict, index_name, node.type, node.key)
-            self.conn.refresh([index_name])
+            try:
+                self.conn.index(index_dict, index_name, node.type, node.key)
+                self.conn.refresh([index_name])
+            except ELASTIC_SEARCH_EXCEPTIONS as err:
+                log.exception(err)
+                pass
 
     def on_delete(self, node):
         type_indices = self.get_indices_of_type(node.type)
@@ -109,7 +120,8 @@ class FullTextSearch(object):
             try:
                 self.conn.delete(index_name, node.type, node.key)
                 self.conn.refresh([index_name])
-            except exceptions.NotFoundException:
+            except ELASTIC_SEARCH_EXCEPTIONS as err:
+                log.exception(err)
                 pass
 
     def on_modify(self, node):
@@ -120,7 +132,8 @@ class FullTextSearch(object):
                 self.conn.delete(index_name, node.type, node.key)
                 self.conn.index(index_dict, index_name, node.type, node.key)
                 self.conn.refresh([index_name])
-            except exceptions.NotFoundException:
+            except ELASTIC_SEARCH_EXCEPTIONS as err:
+                log.exception(err)
                 pass
 
     def get_indices_of_type(self, type):
