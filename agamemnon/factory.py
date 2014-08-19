@@ -267,7 +267,7 @@ class DataStore(object):
         try:
             values = self.get(RELATIONSHIP_CF, ENDPOINT_NAME_TEMPLATE % (rel_type, rel_key)) 
         except NotFoundException:
-            raise NodeNotFoundException()
+            raise NodeNotFoundException("Could not find node for %s, %s", rel_type, rel_key)
         source_node_key = None
         source_node_type = None
         source_attributes = {}
@@ -422,14 +422,14 @@ class DataStore(object):
         try:
             values = self.get(type, key)
         except NotFoundException:
-            raise NodeNotFoundException()
+            raise NodeNotFoundException("Could not find node for %s, %s", type, key)
         return prim.Node(self, type, key, values)
 
     def get_nodes(self, type, keys):
         try:
             rows = self.multiget(type, keys)
         except NotFoundException:
-            raise NodeNotFoundException()
+            raise NodeNotFoundException("Could not find node for %s, %s", type, keys)
         return [ 
             prim.Node(self, type, key, values)
             for key, values in rows
@@ -446,7 +446,7 @@ class DataStore(object):
             column_family = self.delegate.get_cf(type)
             rows = column_family.get_indexed_slices(clause, **kwargs)
         except NotFoundException:
-            raise NodeNotFoundException()
+            raise NodeNotFoundException("Could not find '%s' node with attrs %s", type, attrs)
         return [
             prim.Node(self, type, key, self.deserialize_value(values))
             for key, values in rows
