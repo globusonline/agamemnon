@@ -1,9 +1,11 @@
-class NoTransactionError(Exception):
+class AgamemnonException(Exception):
+    """Base class for errors raised by Agamemnon."""
+
+class NoTransactionError(AgamemnonException):
     pass
 
-
-class NodeNotFoundException(Exception):
+class NodeNotFoundException(AgamemnonException):
     pass
 
-class CassandraClusterNotFoundException(Exception):
+class CassandraClusterNotFoundException(AgamemnonException):
     pass
