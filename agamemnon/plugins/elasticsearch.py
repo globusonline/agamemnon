@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from pyes.es import ES
 from pyes import exceptions
 from pyes import query
@@ -78,10 +79,15 @@ class FullTextSearch(object):
         self.populate_index(type, index_name)
 
     def refresh_index_cache(self):
+
         try:
-            self.indices = self.conn.indices.get_mapping().indices
+            indices = self.conn.indices.get_mapping().indices
         except exceptions.IndexMissingException:
-            self.indices = {}
+            indices = {}
+        else:
+            indices = OrderedDict((k, OrderedDict(v)) for k, v
+                                                            in indices.items())
+        self.indices = indices
 
     def delete_index(self, index_name):
         self.conn.indices.delete_index_if_exists(index_name)
@@ -137,15 +143,14 @@ class FullTextSearch(object):
                 pass
 
     def get_indices_of_type(self, type):
-        #from nose.tools import set_trace; set_trace()
         type_indices = [
             key for key, value in self.indices.items()
-            if type in value[0][0]
+            if type in value
         ]
         return type_indices
 
     def populate_index_document(self, node, index_name):
-        indexed_variables = self.indices[index_name][node.type]['properties'].keys()
+        indexed_variables = self.indices[index_name][node.type].properties.keys()
         index_dict = {
             field: node[field] for field in indexed_variables
         }
