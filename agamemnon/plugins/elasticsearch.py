@@ -63,7 +63,7 @@ class FullTextSearch(object):
         return nodelist
 
     def create_index(self, type, indexed_variables, index_name):
-        self.conn.create_index_if_missing(index_name, self.settings)
+        self.conn.indices.create_index_if_missing(index_name, self.settings)
         mapping = {}
         for arg in indexed_variables:
             mapping[arg] = {'boost': 1.0,
@@ -73,18 +73,18 @@ class FullTextSearch(object):
         index_settings = {'index_analyzer': 'ngram_analyzer',
                           'search_analyzer': 'standard',
                           'properties': mapping}
-        self.conn.put_mapping(str(type), index_settings, [index_name])
+        self.conn.indices.put_mapping(str(type), index_settings, [index_name])
         self.refresh_index_cache()
         self.populate_index(type, index_name)
 
     def refresh_index_cache(self):
         try:
-            self.indices = self.conn.get_mapping()
+            self.indices = self.conn.indices.get_mapping().indices
         except exceptions.IndexMissingException:
             self.indices = {}
 
     def delete_index(self, index_name):
-        self.conn.delete_index_if_exists(index_name)
+        self.conn.indices.delete_index_if_exists(index_name)
         self.refresh_index_cache()
 
     def populate_index(self, type, index_name):
@@ -101,7 +101,7 @@ class FullTextSearch(object):
                 log.exception(err)
                 pass
             self.conn.index(index_dict, index_name, type, key)
-        self.conn.refresh([index_name])
+        self.conn.indices.refresh([index_name])
 
     def on_create(self, node):
         type_indices = self.get_indices_of_type(node.type)
@@ -109,7 +109,7 @@ class FullTextSearch(object):
             index_dict = self.populate_index_document(node, index_name)
             try:
                 self.conn.index(index_dict, index_name, node.type, node.key)
-                self.conn.refresh([index_name])
+                self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
@@ -119,7 +119,7 @@ class FullTextSearch(object):
         for index_name in type_indices:
             try:
                 self.conn.delete(index_name, node.type, node.key)
-                self.conn.refresh([index_name])
+                self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
@@ -131,15 +131,16 @@ class FullTextSearch(object):
             try:
                 self.conn.delete(index_name, node.type, node.key)
                 self.conn.index(index_dict, index_name, node.type, node.key)
-                self.conn.refresh([index_name])
+                self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
 
     def get_indices_of_type(self, type):
+        #from nose.tools import set_trace; set_trace()
         type_indices = [
             key for key, value in self.indices.items()
-            if type in value
+            if type in value[0][0]
         ]
         return type_indices
 
