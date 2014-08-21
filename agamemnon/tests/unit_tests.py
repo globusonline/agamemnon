@@ -441,7 +441,7 @@ class ElasticSearchTests(TestCase, AgamemnonTests):
             for key in node_data.keys():
                 self.ds.get_node(type, key).delete()
 
-        stats = self.ds.conn.get_indices()
+        stats = self.ds.conn.indices.get_indices()
         self.assertEqual(stats['test_index']['num_docs'], 0)
 
 
