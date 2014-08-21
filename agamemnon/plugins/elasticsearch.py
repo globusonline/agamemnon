@@ -41,7 +41,7 @@ class FullTextSearch(object):
         self.refresh_index_cache()
 
     def search_index_text(self, query_string, fields="_all", **args):
-        q = query.TextQuery(fields, query_string)
+        q = query.MatchQuery(fields, query_string)
         return self.search_index(q, **args)
 
     def search_index(self, query, indices=None, num_results=None, node_type=None):
