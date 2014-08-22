@@ -43,5 +43,5 @@ class Delegate(object):
                     return attr
                 except AttributeError:
                     pass
-            raise AttributeError("No plugin has attribute: ".format(item))
+            raise AttributeError("No plugin has attribute: {0}".format(item))
 
