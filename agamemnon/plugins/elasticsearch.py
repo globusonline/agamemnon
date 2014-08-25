@@ -79,15 +79,16 @@ class FullTextSearch(object):
         self.populate_index(type, index_name)
 
     def refresh_index_cache(self):
-
         try:
             indices = self.conn.indices.get_mapping().indices
         except exceptions.IndexMissingException:
-            indices = {}
-        else:
+            indices = None
+        if indices is not None:
             indices = OrderedDict((k, OrderedDict(v)) for k, v
                                                             in indices.items())
-        self.indices = indices
+            self.indices = indices
+        else:
+            self.indices = OrderedDict()
 
     def delete_index(self, index_name):
         self.conn.indices.delete_index_if_exists(index_name)
