@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from pyes.es import ES
 from pyes import exceptions
 from pyes import query
@@ -80,15 +79,12 @@ class FullTextSearch(object):
 
     def refresh_index_cache(self):
         try:
-            indices = self.conn.indices.get_mapping().indices
+            indices = self.conn.indices.get_mapping(raw=True)
         except exceptions.IndexMissingException:
-            indices = None
-        if indices is not None:
-            indices = OrderedDict((k, OrderedDict(v)) for k, v
-                                                            in indices.items())
-            self.indices = indices
+            indices = {}
         else:
-            self.indices = OrderedDict()
+            indices = dict((k, v.get('mappings', {})) for k, v in indices.items())
+        self.indices = indices
 
     def delete_index(self, index_name):
         self.conn.indices.delete_index_if_exists(index_name)
@@ -151,7 +147,7 @@ class FullTextSearch(object):
         return type_indices
 
     def populate_index_document(self, node, index_name):
-        indexed_variables = self.indices[index_name][node.type].properties.keys()
+        indexed_variables = self.indices[index_name][node.type]['properties'].keys()
         index_dict = {
             field: node[field] for field in indexed_variables
         }
