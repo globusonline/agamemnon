@@ -13,7 +13,8 @@ log = logging.getLogger(__name__)
 
 class FullTextSearch(object):
     def __init__(self, server, settings=None):
-        self.conn = ES(server)
+        self.conn = ES(server, timeout=120.0)  # Default timeout: 30.0
+        self.conn.bulker.bulk_size = 25  # Default: 400
         if settings:
             self.settings = settings
         else:
@@ -111,7 +112,7 @@ class FullTextSearch(object):
         for index_name in type_indices:
             index_dict = self.populate_index_document(node, index_name)
             try:
-                self.conn.index(index_dict, index_name, node.type, node.key)
+                self.conn.index(index_dict, index_name, node.type, node.key, bulk=True)
                 self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
@@ -121,7 +122,7 @@ class FullTextSearch(object):
         type_indices = self.get_indices_of_type(node.type)
         for index_name in type_indices:
             try:
-                self.conn.delete(index_name, node.type, node.key)
+                self.conn.delete(index_name, node.type, node.key, bulk=True)
                 self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
@@ -133,7 +134,7 @@ class FullTextSearch(object):
             index_dict = self.populate_index_document(node, index_name)
             try:
                 self.conn.delete(index_name, node.type, node.key)
-                self.conn.index(index_dict, index_name, node.type, node.key)
+                self.conn.index(index_dict, index_name, node.type, node.key, bulk=True)
                 self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
