@@ -103,7 +103,7 @@ class FullTextSearch(object):
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
-            self.conn.index(index_dict, index_name, type, key)
+            self.conn.index(index_dict, index_name, type, key, bulk=True)
         self.conn.indices.refresh([index_name])
 
     def on_create(self, node):
