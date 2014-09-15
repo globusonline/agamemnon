@@ -13,6 +13,9 @@ log = logging.getLogger(__name__)
 
 class FullTextSearch(object):
     def __init__(self, server, settings=None):
+        # These timeout and bulk_size parameters were determined through
+        # trial and error to be necessary to avoid timeout errors when
+        # generating indices on Sandbox. They should not be taken as gospel.
         self.conn = ES(server, timeout=120.0)  # Default timeout: 30.0
         self.conn.bulker.bulk_size = 25  # Default: 400
         if settings:
