@@ -406,7 +406,7 @@ class ElasticSearchTests(TestCase, AgamemnonTests):
     def test_create_index(self):
         self.ds.create_index("test_type_1", ["full_text"], "test_index")
         #test to see if the index exists
-        self.assertIn("test_index", self.ds.conn.get_indices())
+        self.assertIn("test_index", self.ds.conn.indices.get_indices())
         self.assertIn("test_index", self.ds.get_indices_of_type("test_type_1"))
         self.assertNotIn("test_index", self.ds.get_indices_of_type("test_type_2"))
 
@@ -441,7 +441,7 @@ class ElasticSearchTests(TestCase, AgamemnonTests):
             for key in node_data.keys():
                 self.ds.get_node(type, key).delete()
 
-        stats = self.ds.conn.get_indices()
+        stats = self.ds.conn.indices.get_indices()
         self.assertEqual(stats['test_index']['num_docs'], 0)
 
 

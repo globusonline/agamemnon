@@ -15,10 +15,9 @@ class Delegate(object):
                 plugin = cls(**config['plugin_config'])
                 self.__dict__[key]=plugin
                 self.plugins.append(key)
-            except Exception as e:
-                # Catch all exceptions because we can't know what the plugins will throw.
-                message = "Can't load plugin {0}. Stack trace:\n{1}".format(key, str(e))
-                log.error(message)
+            except Exception:
+                # TODO: Don't catch all exceptions.
+                log.exception("Can't load plugin: %s", key)
 
     def on_create(self,node):
         for plugin in self.plugins:
@@ -44,5 +43,5 @@ class Delegate(object):
                     return attr
                 except AttributeError:
                     pass
-            raise AttributeError("No plugin has attribute: %s" % item)
+            raise AttributeError("No plugin has attribute: {0}".format(item))
 

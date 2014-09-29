@@ -13,7 +13,11 @@ log = logging.getLogger(__name__)
 
 class FullTextSearch(object):
     def __init__(self, server, settings=None):
-        self.conn = ES(server)
+        # These timeout and bulk_size parameters were determined through
+        # trial and error to be necessary to avoid timeout errors when
+        # generating indices on Sandbox. They should not be taken as gospel.
+        self.conn = ES(server, timeout=120.0)  # Default timeout: 30.0
+        self.conn.bulker.bulk_size = 25  # Default: 400
         if settings:
             self.settings = settings
         else:
@@ -40,7 +44,7 @@ class FullTextSearch(object):
         self.refresh_index_cache()
 
     def search_index_text(self, query_string, fields="_all", **args):
-        q = query.TextQuery(fields, query_string)
+        q = query.MatchQuery(fields, query_string)
         return self.search_index(q, **args)
 
     def search_index(self, query, indices=None, num_results=None, node_type=None):
@@ -63,7 +67,7 @@ class FullTextSearch(object):
         return nodelist
 
     def create_index(self, type, indexed_variables, index_name):
-        self.conn.create_index_if_missing(index_name, self.settings)
+        self.conn.indices.create_index_if_missing(index_name, self.settings)
         mapping = {}
         for arg in indexed_variables:
             mapping[arg] = {'boost': 1.0,
@@ -73,18 +77,21 @@ class FullTextSearch(object):
         index_settings = {'index_analyzer': 'ngram_analyzer',
                           'search_analyzer': 'standard',
                           'properties': mapping}
-        self.conn.put_mapping(str(type), index_settings, [index_name])
+        self.conn.indices.put_mapping(str(type), index_settings, [index_name])
         self.refresh_index_cache()
         self.populate_index(type, index_name)
 
     def refresh_index_cache(self):
         try:
-            self.indices = self.conn.get_mapping()
+            indices = self.conn.indices.get_mapping(raw=True)
         except exceptions.IndexMissingException:
-            self.indices = {}
+            indices = {}
+        else:
+            indices = dict((k, v.get('mappings', {})) for k, v in indices.items())
+        self.indices = indices
 
     def delete_index(self, index_name):
-        self.conn.delete_index_if_exists(index_name)
+        self.conn.indices.delete_index_if_exists(index_name)
         self.refresh_index_cache()
 
     def populate_index(self, type, index_name):
@@ -100,16 +107,16 @@ class FullTextSearch(object):
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
-            self.conn.index(index_dict, index_name, type, key)
-        self.conn.refresh([index_name])
+            self.conn.index(index_dict, index_name, type, key, bulk=True)
+        self.conn.indices.refresh([index_name])
 
     def on_create(self, node):
         type_indices = self.get_indices_of_type(node.type)
         for index_name in type_indices:
             index_dict = self.populate_index_document(node, index_name)
             try:
-                self.conn.index(index_dict, index_name, node.type, node.key)
-                self.conn.refresh([index_name])
+                self.conn.index(index_dict, index_name, node.type, node.key, bulk=True)
+                self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
@@ -118,8 +125,8 @@ class FullTextSearch(object):
         type_indices = self.get_indices_of_type(node.type)
         for index_name in type_indices:
             try:
-                self.conn.delete(index_name, node.type, node.key)
-                self.conn.refresh([index_name])
+                self.conn.delete(index_name, node.type, node.key, bulk=True)
+                self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
@@ -130,8 +137,8 @@ class FullTextSearch(object):
             index_dict = self.populate_index_document(node, index_name)
             try:
                 self.conn.delete(index_name, node.type, node.key)
-                self.conn.index(index_dict, index_name, node.type, node.key)
-                self.conn.refresh([index_name])
+                self.conn.index(index_dict, index_name, node.type, node.key, bulk=True)
+                self.conn.indices.refresh([index_name])
             except ELASTIC_SEARCH_EXCEPTIONS as err:
                 log.exception(err)
                 pass
